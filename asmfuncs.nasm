@@ -129,7 +129,7 @@ changeBrightnessASM:
 	xor r8, r8				; r8 is loop-counter, clear it
 
 	cmp cx, 0				; see if we need to add or subtract
-	jl sub					; jump to sub: if cx < 0
+	jl subFunc				; jump to subFunc: if cx < 0
 
 	mov r10w, 0xFFFF		; overflow helper value for add
 
@@ -146,7 +146,7 @@ loopAdd:
 
 	ret						; we're done, back to C++
 
-sub:
+subFunc:
 	mov r10w, 0				; overflow helper value for subtract
 	neg cx					; negate the value
 

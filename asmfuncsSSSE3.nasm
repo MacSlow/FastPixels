@@ -61,7 +61,7 @@ changeBrightnessSSSE3:
 	pshufb xmm1, xmm0		; shuffle xmm1 to have vvv0 for every of the four pixels
 	
 	cmp cx, 0				; see if we need to add or subtract
-	jl sub					; jump to sub: if cx < 0
+	jl subFunc				; jump to subFunc: if cx < 0
 
 loopAdd:
 	movdqu xmm0, [rdi+r9]	; get next 4 RGBA-pixels from source
@@ -75,7 +75,7 @@ loopAdd:
 
 	ret						; we're done, back to C++
 
-sub:
+subFunc:
 	neg cx					; negate the value
 
 	pinsrb xmm1, cl, 0		; insert cl to 1st byte of XMM1
