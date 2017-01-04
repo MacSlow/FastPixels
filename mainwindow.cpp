@@ -201,7 +201,7 @@ void pixelSumHoriz (const uchar* src,
         } else {
             // ... otherwise use the sliding window shortcut
             int c = 4 * (y * width + x + value);
-            int l = 4 * (y * width + x - value);
+            int l = 4 * (y * width + x - value - 1);
             float curr[3] = {.0f, .0f, .0f};
             float last[3] = {.0f, .0f, .0f};
             if (x + value < width) {
@@ -209,7 +209,7 @@ void pixelSumHoriz (const uchar* src,
                 curr[1] = src[c+1];
                 curr[2] = src[c+2];
             }
-            if (x - value > 0) {
+            if (x - value - 1 >= 0) {
                 last[0] = src[l];
                 last[1] = src[l+1];
                 last[2] = src[l+2];
@@ -261,8 +261,8 @@ void pixelSumVert (const uchar* src,
             sum[2] /= avg;
         } else {
             // ... otherwise use the sliding window shortcut
-            unsigned c = 4 * ((y + value) * width + x);
-            int l = 4 * ((y - value) * width + x);
+            int c = 4 * ((y + value) * width + x);
+            int l = 4 * ((y - value - 1) * width + x);
             float curr[3] = {.0f, .0f, .0f};
             float last[3] = {.0f, .0f, .0f};
             if (y + value < height) {
@@ -270,7 +270,7 @@ void pixelSumVert (const uchar* src,
                 curr[1] = src[c+1];
                 curr[2] = src[c+2];
             }
-            if (y - value > 0) {
+            if (y - value - 1 >= 0) {
                 last[0] = src[l];
                 last[1] = src[l+1];
                 last[2] = src[l+2];
