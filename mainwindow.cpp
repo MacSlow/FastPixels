@@ -172,102 +172,132 @@ void boxBlur1PassCPP (const uchar* src,
 
 void pixelSumHoriz (const uchar* src,
                     uchar* dst,
-                    unsigned x,
-                    unsigned y,
-                    unsigned width,
+                    int y,
+                    int width,
                     int value)
 {
     float sum[3] = {.0f, .0f, .0f};
-    unsigned s = 0;
-/*
-     a b c d e f g
-   (0+a+b) / 3                  save 0
-     (a+b+c) / 3 = 0+a+b - 0 + c    save a
-       (b+c+d) / 3 = a+b+c - a + d    save b
-         (c+d+e) / 3 = b+c+d - b + e    save c
-           ...
-
-newSum = oldSum - lastValue + newElementValue
-
-    a      b      c      d  e  f  g
- 0²+a²+b²
-        a²+b²+c²
-               b²+c²+d²
-                      c²+d²+e²
-    1 2 3 4 5 6 7
-  00123
-    01234
-      12345
-        23456
-
-last pixel' first element or 0
-
-    3    0  1  4 = 5
-    6    1  4  9 = 14
-    9    4  9 16 = 29
-    12   9 16 25 = 50
-
-    9
-    36
-    144*/
-
-    for (int offset = -value; offset < value + 1; ++offset) {
-        s = 4 * (y * width + x + offset);
-        if (x + offset >= 0 && x + offset <= width) {
-            sum[0] += src[s] * src[s];
-            sum[1] += src[s+1] * src[s+1];
-            sum[2] += src[s+2] * src[s+2];
-        }
-    }
-
+    float lastSum[3] = {.0f, .0f, .0f};
+    int s = 0;
     float avg = 2.f * value + 1.f;
-    sum[0] /= avg;
-    sum[1] /= avg;
-    sum[2] /= avg;
 
-    unsigned d = 4 * (y * width + x);
-    dst[d] = clamp ((unsigned) sqrt (sum[0]));
-    dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
-    dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+    // walk a full row of pixels in the image
+    for (int x = 0; x < width; ++x) {
+        // calculate the full convolution sum/average, if at the beginning...
+        if (x == 0) {
+            for (int offset = -value; offset < value + 1; ++offset) {
+                s = 4 * (y * width + x + offset);
+                if (x + offset >= 0 && x + offset <= width) {
+                    sum[0] += src[s] * src[s];
+                    sum[1] += src[s+1] * src[s+1];
+                    sum[2] += src[s+2] * src[s+2];
+                }
+            }
+
+            sum[0] /= avg;
+            sum[1] /= avg;
+            sum[2] /= avg;
+
+        } else {
+            // ... otherwise use the sliding window shortcut
+            int c = 4 * (y * width + x + value);
+            int l = 4 * (y * width + x - value);
+            float curr[3] = {.0f, .0f, .0f};
+            float last[3] = {.0f, .0f, .0f};
+            if (x + value < width) {
+                curr[0] = src[c];
+                curr[1] = src[c+1];
+                curr[2] = src[c+2];
+            }
+            if (x - value > 0) {
+                last[0] = src[l];
+                last[1] = src[l+1];
+                last[2] = src[l+2];
+            }
+            sum[0] = lastSum[0] + (curr[0] * curr[0] - last[0] * last[0]) / avg;
+            sum[1] = lastSum[1] + (curr[1] * curr[1] - last[1] * last[1]) / avg;
+            sum[2] = lastSum[2] + (curr[2] * curr[2] - last[2] * last[2]) / avg;
+        }
+
+        // update the destination with the calculated average
+        unsigned d = 4 * (y * width + x);
+        dst[d] = clamp ((unsigned) sqrt (sum[0]));
+        dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
+        dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+
+        lastSum[0] = sum[0];
+        lastSum[1] = sum[1];
+        lastSum[2] = sum[2];
+    }
 }
 
 void pixelSumVert (const uchar* src,
                    uchar* dst,
-                   unsigned x,
-                   unsigned y,
-                   unsigned width,
-                   unsigned height,
+                   int x,
+                   int width,
+                   int height,
                    int value)
 {
     float sum[3] = {.0f, .0f, .0f};
-    unsigned s = 0;
-
-    for (int offset = -value; offset < value + 1; ++offset) {
-        s = 4 * ((y + offset) * width + x);
-        if (y + offset >= 0 && y + offset <= height) {
-            sum[0] += src[s] * src[s];
-            sum[1] += src[s+1] * src[s+1];
-            sum[2] += src[s+2] * src[s+2];
-        }
-    }
-
+    float lastSum[3] = {.0f, .0f, .0f};
+    int s = 0;
     float avg = 2.f * value + 1.f;
-    sum[0] /= avg;
-    sum[1] /= avg;
-    sum[2] /= avg;
 
-    unsigned d = 4 * (y * width + x);
-    dst[d] = clamp ((unsigned) sqrt (sum[0]));
-    dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
-    dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+    // walk a full column of pixels in the image
+    for (int y = 0; y < height; ++y) {
+        // calculate the full convolution sum/average, if at the beginning...
+        if (y == 0) {
+            for (int offset = -value; offset < value + 1; ++offset) {
+                s = 4 * ((y + offset) * width + x);
+                if (y + offset >= 0 && y + offset <= height) {
+                    sum[0] += src[s] * src[s];
+                    sum[1] += src[s+1] * src[s+1];
+                    sum[2] += src[s+2] * src[s+2];
+                }
+            }
+
+            sum[0] /= avg;
+            sum[1] /= avg;
+            sum[2] /= avg;
+        } else {
+            // ... otherwise use the sliding window shortcut
+            unsigned c = 4 * ((y + value) * width + x);
+            int l = 4 * ((y - value) * width + x);
+            float curr[3] = {.0f, .0f, .0f};
+            float last[3] = {.0f, .0f, .0f};
+            if (y + value < height) {
+                curr[0] = src[c];
+                curr[1] = src[c+1];
+                curr[2] = src[c+2];
+            }
+            if (y - value > 0) {
+                last[0] = src[l];
+                last[1] = src[l+1];
+                last[2] = src[l+2];
+            }
+            sum[0] = lastSum[0] + (curr[0] * curr[0] - last[0] * last[0]) / avg;
+            sum[1] = lastSum[1] + (curr[1] * curr[1] - last[1] * last[1]) / avg;
+            sum[2] = lastSum[2] + (curr[2] * curr[2] - last[2] * last[2]) / avg;
+        }
+
+        // update the destination with the calculated average
+        unsigned d = 4 * (y * width + x);
+        dst[d] = clamp ((unsigned) sqrt (sum[0]));
+        dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
+        dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+
+        lastSum[0] = sum[0];
+        lastSum[1] = sum[1];
+        lastSum[2] = sum[2];
+    }
 }
 
 void boxBlur2PassCPP (const uchar* src,
-                uchar* scratch,
-                uchar* dst,
-                unsigned width,
-                unsigned height,
-                int value)
+                      uchar* scratch,
+                      uchar* dst,
+                      unsigned width,
+                      unsigned height,
+                      int value)
 {
     // sanity check if there's anything to do
     if (value == 0)
@@ -275,16 +305,12 @@ void boxBlur2PassCPP (const uchar* src,
 
     // horizontal pass
     for (unsigned y = 0; y < height; ++y) {
-        for (unsigned x = 0; x < width; ++x) {
-            pixelSumHoriz (src, scratch, x, y, width, abs (value));
-        }
+        pixelSumHoriz (src, scratch, (int) y, (int) width, abs (value));
     }
 
     // vertical pass
     for (unsigned x = 0; x < width; ++x) {
-            for (unsigned y = 0; y < height; ++y) {
-            pixelSumVert (scratch, dst, x, y, width, height, abs (value));
-        }
+        pixelSumVert (scratch, dst, (int) x, (int) width, (int) height, abs (value));
     }
 }
 
