@@ -29,6 +29,7 @@
 #include <sstream>
 #include <memory>
 #include <future>
+#include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -136,8 +137,8 @@ void boxBlur1PassCPP (const uchar* src,
         return;
 
     // walk over the whole image
-    for (unsigned y = 0; y < height; ++y) {
-        for (unsigned x = 0; x < width; ++x) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
 
             // walk over the convolution kernel per pixel
             for (int offsetX = -absValue; offsetX < absValue + 1; ++offsetX) {
