@@ -124,8 +124,8 @@ void changeBrightness2PassCPP (const uchar* src,
 
 void boxBlur1PassCPP (const uchar* src,
                    uchar* dst,
-                   unsigned width,
-                   unsigned height,
+                   int width,
+                   int height,
                    int value)
 {
     float sum[3] = {.0f, .0f, .0f};
