@@ -48,3 +48,14 @@ set (FastPixels_sources main.cpp mainwindow.cpp)
 add_executable (FastPixels ${FastPixels_sources})
 qt5_use_modules (FastPixels Core Widgets Gui)
 target_link_libraries (FastPixels AsmLib -pthread ${qt_libraries})
+
+add_custom_target (perf
+	DEPENDS FastPixels
+	COMMAND perf stat ./FastPixels
+)
+
+add_custom_target (report
+	DEPENDS FastPixels
+	COMMAND perf record -g ./FastPixels
+	COMMAND perf report -g 'graph,0.5,caller' --sort comm,dso,sym
+)

@@ -8,4 +8,5 @@ build/cmake_install.cmake
 build/FastPixels_automoc.cpp
 build/moc_mainwindow.cpp
 build/ui_mainwindow.h
-
+build/perf.data
+build/perf.data.old
