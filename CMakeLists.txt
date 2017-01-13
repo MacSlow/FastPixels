@@ -1,7 +1,7 @@
 ################################################################################
 #23456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789
 #
-#  FastPixels - a experiment into hand-tuned x86-assembly
+#  FastPixels - an experiment into hand-tuned x86-assembly
 # 
 #  Copyright 2016-2017 Mirco Müller
 # 
