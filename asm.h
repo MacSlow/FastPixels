@@ -35,13 +35,28 @@ extern "C" bool hasSSE41 ();
 extern "C" bool hasSSE42 ();
 extern "C" bool hasAVX ();
 extern "C" bool hasAVX2 ();
-extern "C" void changeBrightnessASM (const uchar* src,
-                                     uchar* dst,
-                                     int numBytes,
-                                     int value);
-extern "C" void changeBrightnessSSSE3 (const uchar* src,
-                                       uchar* dst,
-                                       int numBytes,
-                                       int value);
+
+extern "C" void changeBrightnessASM (const uchar* src, // rdi
+                                     uchar* dst,       // rsi
+                                     int numBytes,     // rdx
+                                     int value);       // rcx
+
+extern "C" void changeBrightnessSSSE3 (const uchar* src, // rdi
+                                       uchar* dst,       // rsi
+                                       int numBytes,     // rdx
+                                       int value);       // rcx
+
+extern "C" void pixelSumHorizAVX (const uchar* src, // rdi
+								  uchar* dst,       // rsi
+								  int y,            // rdx
+								  int width,        // rcx
+								  int value);       // r8
+
+extern "C" void pixelSumVertAVX (const uchar* src, // rdi
+								 uchar* dst,       // rsi
+								 int x,            // rdx
+								 int width,        // rcx
+								 int height,       // r8
+								 int value);       // r9
 
 #endif // ASM_H

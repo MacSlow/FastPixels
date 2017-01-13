@@ -26,7 +26,7 @@ cmake_minimum_required (VERSION 2.8.11)
 project (FastPixels)
 
 enable_language (ASM_NASM)
-add_library (AsmLib asmfuncs.nasm asmfuncsSSSE3.nasm)
+add_library (AsmLib asmfuncs.nasm asmfuncsSSSE3.nasm asmfuncsAVX.nasm)
 
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTOUIC ON)
@@ -36,7 +36,7 @@ find_package (Qt5Core)
 find_package (Qt5Gui)
 find_package (Qt5Widgets)
 
-add_compile_options (-std=c++14 -Wall -Werror -pedantic -Ofast -march=native)
+add_compile_options (-std=c++14 -Wall -Werror -pedantic -fno-omit-frame-pointer -Ofast -march=native)
 
 add_definitions (${qt_definitions})
 include_directories (${Qt5Core_INCLUDES})
@@ -48,3 +48,19 @@ set (FastPixels_sources main.cpp mainwindow.cpp)
 add_executable (FastPixels ${FastPixels_sources})
 qt5_use_modules (FastPixels Core Widgets Gui)
 target_link_libraries (FastPixels AsmLib -pthread ${qt_libraries})
+
+add_custom_target (valgrind
+	DEPENDS FastPixels
+	COMMAND valgrind --show-leak-kinds=all  --leak-check=full -v ./FastPixels
+)
+
+add_custom_target (perf
+	DEPENDS FastPixels
+	COMMAND perf stat ./FastPixels
+)
+
+add_custom_target (report
+	DEPENDS FastPixels
+	COMMAND perf record -g ./FastPixels
+	COMMAND perf report -g 'graph,0.5,caller' --sort comm,dso,sym
+)

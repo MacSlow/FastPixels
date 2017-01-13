@@ -29,6 +29,7 @@
 #include <sstream>
 #include <memory>
 #include <future>
+#include <cmath>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -123,25 +124,25 @@ void changeBrightness2PassCPP (const uchar* src,
 
 void boxBlur1PassCPP (const uchar* src,
                    uchar* dst,
-                   unsigned width,
-                   unsigned height,
+                   int width,
+                   int height,
                    int value)
 {
     float sum[3] = {.0f, .0f, .0f};
     unsigned s = 0;
-    int absValue = abs (value);
+    int aValue = abs (value);
 
     // sanity check if there's anything to do
-    if (absValue == 0)
+    if (aValue == 0)
         return;
 
     // walk over the whole image
-    for (unsigned y = 0; y < height; ++y) {
-        for (unsigned x = 0; x < width; ++x) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
 
             // walk over the convolution kernel per pixel
-            for (int offsetX = -absValue; offsetX < absValue + 1; ++offsetX) {
-                for (int offsetY = -absValue; offsetY < absValue + 1; ++offsetY) {
+            for (int offsetX = -aValue; offsetX < aValue + 1; ++offsetX) {
+                for (int offsetY = -aValue; offsetY < aValue + 1; ++offsetY) {
                     s = 4 * ((y + offsetY) * width + x + offsetX);
                     if (x + offsetX >= 0 &&
                         x + offsetX <= width &&
@@ -155,7 +156,7 @@ void boxBlur1PassCPP (const uchar* src,
             }
 
             // normalize result
-            float avg = 2.f * absValue + 1.f;
+            float avg = 2.f * aValue + 1.f;
             avg *= avg;
             sum[0] /= avg;
             sum[1] /= avg;
@@ -163,9 +164,9 @@ void boxBlur1PassCPP (const uchar* src,
 
             // write final pixel
             unsigned d = 4 * (y * width + x);
-            dst[d+0] = clamp ((unsigned) sqrt (sum[0]));
-            dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
-            dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+            dst[d+0] = clamp (sqrtf (sum[0]));
+            dst[d+1] = clamp (sqrtf (sum[1]));
+            dst[d+2] = clamp (sqrtf (sum[2]));
         }
     }
 }
@@ -179,7 +180,7 @@ void pixelSumHoriz (const uchar* src,
     float sum[3] = {.0f, .0f, .0f};
     float lastSum[3] = {.0f, .0f, .0f};
     int s = 0;
-    float avg = 2.f * value + 1.f;
+    float recpAvg = 1.f / (2.f * value + 1.f);
 
     // walk a full row of pixels in the image
     for (int x = 0; x < width; ++x) {
@@ -194,36 +195,36 @@ void pixelSumHoriz (const uchar* src,
                 }
             }
 
-            sum[0] /= avg;
-            sum[1] /= avg;
-            sum[2] /= avg;
+            sum[0] *= recpAvg;
+            sum[1] *= recpAvg;
+            sum[2] *= recpAvg;
 
         } else {
             // ... otherwise use the sliding window shortcut
-            int c = 4 * (y * width + x + value);
-            int l = 4 * (y * width + x - value - 1);
-            float curr[3] = {.0f, .0f, .0f};
-            float last[3] = {.0f, .0f, .0f};
+            int curr = 4 * (y * width + x + value);
+            int last = 4 * (y * width + x - value - 1);
+            float c[3] = {.0f, .0f, .0f};
+            float l[3] = {.0f, .0f, .0f};
             if (x + value < width) {
-                curr[0] = src[c];
-                curr[1] = src[c+1];
-                curr[2] = src[c+2];
+                c[0] = src[curr];
+                c[1] = src[curr+1];
+                c[2] = src[curr+2];
             }
             if (x - value - 1 >= 0) {
-                last[0] = src[l];
-                last[1] = src[l+1];
-                last[2] = src[l+2];
+                l[0] = src[last];
+                l[1] = src[last+1];
+                l[2] = src[last+2];
             }
-            sum[0] = lastSum[0] + (curr[0] * curr[0] - last[0] * last[0]) / avg;
-            sum[1] = lastSum[1] + (curr[1] * curr[1] - last[1] * last[1]) / avg;
-            sum[2] = lastSum[2] + (curr[2] * curr[2] - last[2] * last[2]) / avg;
+            sum[0] = lastSum[0] + (c[0] * c[0] - l[0] * l[0]) * recpAvg;
+            sum[1] = lastSum[1] + (c[1] * c[1] - l[1] * l[1]) * recpAvg;
+            sum[2] = lastSum[2] + (c[2] * c[2] - l[2] * l[2]) * recpAvg;
         }
 
         // update the destination with the calculated average
         unsigned d = 4 * (y * width + x);
-        dst[d] = clamp ((unsigned) sqrt (sum[0]));
-        dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
-        dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+        dst[d] = clamp (sqrtf (sum[0]));
+        dst[d+1] = clamp (sqrtf (sum[1]));
+        dst[d+2] = clamp (sqrtf (sum[2]));
 
         lastSum[0] = sum[0];
         lastSum[1] = sum[1];
@@ -241,7 +242,7 @@ void pixelSumVert (const uchar* src,
     float sum[3] = {.0f, .0f, .0f};
     float lastSum[3] = {.0f, .0f, .0f};
     int s = 0;
-    float avg = 2.f * value + 1.f;
+    float recpAvg = 1.f / (2.f * value + 1.f);
 
     // walk a full column of pixels in the image
     for (int y = 0; y < height; ++y) {
@@ -256,35 +257,35 @@ void pixelSumVert (const uchar* src,
                 }
             }
 
-            sum[0] /= avg;
-            sum[1] /= avg;
-            sum[2] /= avg;
+            sum[0] *= recpAvg;
+            sum[1] *= recpAvg;
+            sum[2] *= recpAvg;
         } else {
             // ... otherwise use the sliding window shortcut
-            int c = 4 * ((y + value) * width + x);
-            int l = 4 * ((y - value - 1) * width + x);
-            float curr[3] = {.0f, .0f, .0f};
-            float last[3] = {.0f, .0f, .0f};
+            int curr = 4 * ((y + value) * width + x);
+            int last = 4 * ((y - value - 1) * width + x);
+            float c[3] = {.0f, .0f, .0f};
+            float l[3] = {.0f, .0f, .0f};
             if (y + value < height) {
-                curr[0] = src[c];
-                curr[1] = src[c+1];
-                curr[2] = src[c+2];
+                c[0] = src[curr];
+                c[1] = src[curr+1];
+                c[2] = src[curr+2];
             }
             if (y - value - 1 >= 0) {
-                last[0] = src[l];
-                last[1] = src[l+1];
-                last[2] = src[l+2];
+                l[0] = src[last];
+                l[1] = src[last+1];
+                l[2] = src[last+2];
             }
-            sum[0] = lastSum[0] + (curr[0] * curr[0] - last[0] * last[0]) / avg;
-            sum[1] = lastSum[1] + (curr[1] * curr[1] - last[1] * last[1]) / avg;
-            sum[2] = lastSum[2] + (curr[2] * curr[2] - last[2] * last[2]) / avg;
+            sum[0] = lastSum[0] + (c[0] * c[0] - l[0] * l[0]) * recpAvg;
+            sum[1] = lastSum[1] + (c[1] * c[1] - l[1] * l[1]) * recpAvg;
+            sum[2] = lastSum[2] + (c[2] * c[2] - l[2] * l[2]) * recpAvg;
         }
 
         // update the destination with the calculated average
         unsigned d = 4 * (y * width + x);
-        dst[d] = clamp ((unsigned) sqrt (sum[0]));
-        dst[d+1] = clamp ((unsigned) sqrt (sum[1]));
-        dst[d+2] = clamp ((unsigned) sqrt (sum[2]));
+        dst[d] = clamp (sqrtf (sum[0]));
+        dst[d+1] = clamp (sqrtf (sum[1]));
+        dst[d+2] = clamp (sqrtf (sum[2]));
 
         lastSum[0] = sum[0];
         lastSum[1] = sum[1];
@@ -310,8 +311,41 @@ void boxBlur2PassCPP (const uchar* src,
 
     // vertical pass
     for (unsigned x = 0; x < width; ++x) {
-        pixelSumVert (scratch, dst, (int) x, (int) width, (int) height, abs (value));
+        pixelSumVert (scratch,
+                      dst,
+                      (int) x,
+                      (int) width,
+                      (int) height,
+                      abs (value));
     }
+}
+
+void boxBlur2PassAVX (const uchar* src,
+                      uchar* scratch,
+                      uchar* dst,
+                      unsigned width,
+                      unsigned height,
+                      int value)
+{
+    // sanity check if there's anything to do
+    if (value == 0)
+        return;
+
+    // horizontal pass
+    for (unsigned y = 0; y < height; ++y) {
+        //pixelSumHorizAVX (src, scratch, (int) y, (int) width, abs (value));
+        pixelSumHorizAVX (src, dst, (int) y, (int) width, abs (value));
+    }
+
+    // vertical pass
+    /*for (unsigned x = 0; x < width; ++x) {
+        pixelSumVertAVX (scratch,
+                         dst,
+                         (int) x,
+                         (int) width,
+                         (int) height,
+                         abs (value));
+    }*/
 }
 
 void MainWindow::changeValue (int value)
@@ -351,11 +385,20 @@ void MainWindow::changeValue (int value)
 
         case ComputeType::CPPBLUR2PASS :
             boxBlur2PassCPP (src,
-                       scratch,
-                       dst,
-                       orig_.width (),
-                       orig_.height (),
-                       value);
+                             scratch,
+                             dst,
+                             orig_.width (),
+                             orig_.height (),
+                             value);
+        break;
+
+        case ComputeType::AVXBLUR2PASS :
+            boxBlur2PassAVX (src,
+                             scratch,
+                             dst,
+                             orig_.width (),
+                             orig_.height (),
+                             value);
         break;
 
         case ComputeType::SSSE3MT :
@@ -405,7 +448,8 @@ void MainWindow::changeValue (int value)
         break;
     }
 
-    auto diff = chrono::duration_cast<chrono::milliseconds> (chrono::high_resolution_clock::now () - start);
+    auto diff = chrono::duration_cast<chrono::milliseconds>
+    (chrono::high_resolution_clock::now () - start);
     stringstream title;
     title << "Time (ms): " << setprecision (4) << diff.count ();
     string str (title.str ());

@@ -72,37 +72,42 @@
           </property>
           <item>
            <property name="text">
-            <string>C++ (1D)</string>
+            <string>C++ (naive Brightness)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>C++ (2D)</string>
+            <string>C++ (Brightness)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>plain x86</string>
+            <string>x86 (Brightness)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>SSSE3</string>
+            <string>SSSE3 (Brightness Single-Threaded)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>SSSE3 (mt)</string>
+            <string>SSSE3 (Brightness Multi-Threaded)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>C++ (1D Blur)</string>
+            <string>C++ (1-Pass Box Blur)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>C++ (2D Blur)</string>
+            <string>C++ (2-Pass Box Blur)</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>AVX (Box Blur)</string>
            </property>
           </item>
          </widget>

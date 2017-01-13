@@ -43,7 +43,8 @@ enum class ComputeType {
     SSSE3,
     SSSE3MT,
     CPPBLUR1PASS,
-    CPPBLUR2PASS
+    CPPBLUR2PASS,
+    AVXBLUR2PASS
 };
 
 namespace Ui {
